@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssafy.product.model.dao.ProductDao">
+
+	<!-- 상품 조회  -->
+	<select id="select" resultType="Product" parameterType="ProductCondition">
+		SELECT id, itemNm, price, itemDetail, view_cnt as viewCnt, date_format(regTime, '%Y-%M-%d') as regTime, img, avg_rating as avgRating
+		FROM product
+		WHERE
+		<if test="category != 'none'">
+		category = #{category}
+		</if>
+		<if test="word != 'none'">
+		itemNm LIKE concat('%', #{word}, '%')
+		</if>
+		ORDER BY ${orderKey} ${orderByDir}
+	</select>
+
+	<!-- 상세 상품 조회 -->
+	<select id="selectOne" resultType="Product" parameterType="int">
+		SELECT id, itemNm, price, itemDetail, stockNumber, view_cnt as viewCnt, date_format(regTime, '%Y-%M-%d') as regTime, category, img, avg_rating as avgRating
+		FROM product
+		WHERE id = #{id};
+	</select>
+
+	<!-- 상품 등록 -->
+	<insert id="insertProduct" parameterType="Product" keyProperty="id" useGeneratedKeys="true">
+		INSERT INTO product (itemNm, category, price, stockNumber,itemDetail, img)
+		VALUES ( #{itemNm}, #{category}, #{price}, #{stockNumber}, #{itemDetail}, #{img})
+	</insert>
+	
+	<!-- 상품 삭제 -->
+	<delete id="deleteProduct" parameterType="int">
+		DELETE FROM product
+		WHERE id = #{id}
+	</delete>
+	
+	<!-- 조회수 증가 -->
+	<update id="updateViewCnt" parameterType="int">
+		UPDATE product
+		SET view_cnt = view_cnt+1
+		WHERE id = #{id}
+	</update>
+	
+	<!-- 상품 수정 -->
+	<!-- 컬럼이 등록 날짜만 관리를 하고 있다. -->
+	<!-- 등록날짜 / 최근 조회날짜 / 수정 날짜 .... -->
+	<update id="updateProduct" parameterType="Product">
+		UPDATE product
+		SET itemNm = #{itemNm}, price = #{price}, stockNumber = #{stockNumber}, itemDetail = #{itemDetail}, 
+			category = #{category}, img = #{img}, updateTime = now()
+		WHERE id = #{id}
+	</update>
+	
+	<!-- 구매 많은 10개 물품 -->
+	<select id="selectPurList" resultType="Product">
+		SELECT id, itemNm, price, itemDetail, view_cnt as viewCnt, date_format(regTime, '%Y-%M-%d') as regTime, img, purchaseCnt, stockNumber
+		FROM product
+		ORDER BY purchaseCnt DESC
+		LIMIT 10;
+	</select>
+	
+	<!-- 판매 임박 10개 물품 -->
+	<select id="selectStockList" resultType="Product">
+		SELECT id, itemNm, price, itemDetail, view_cnt as viewCnt, date_format(regTime, '%Y-%M-%d') as regTime, img, purchaseCnt, stockNumber
+		FROM product
+		WHERE stockNumber > 0
+		ORDER BY stockNumber ASC
+		LIMIT 10;
+	</select>
+	
+	<!-- 신상품 10개 물품 -->
+	<select id="selectNewList" resultType="Product">
+		SELECT id, itemNm, price, itemDetail, view_cnt as viewCnt, date_format(regTime, '%Y-%M-%d') as regTime, img, purchaseCnt, stockNumber
+		FROM product
+		ORDER BY regTime DESC
+		LIMIT 10;
+	</select>
+	
+	<!-- 결제했을 시 재고 업데이트 -->
+	<update id="updateOrder" parameterType="Product">
+		UPDATE product
+		SET stockNumber = stockNumber - #{productCnt}, purchaseCnt = purchaseCnt + #{productCnt}, updateTime = now()
+		WHERE id = #{id}
+	</update>
+</mapper>

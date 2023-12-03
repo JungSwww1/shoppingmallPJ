@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssafy.product.model.dao.CartDao">
+	<resultMap type="Cart" id="cartMap">
+		<result column="id" property="id"/>
+		<result column="user_id" property="userId"/>
+		<result column="product_id" property="productId"/>
+		<result column="product_price" property="productPrice"/>
+		<result column="product_cnt" property="productCnt"/>
+		<result column="itemNm" property="itemNm"/>
+		<result column="img" property="img"/>
+	</resultMap>
+	<!-- 장바구니 가져오기 -->
+	<select id="selectOne" resultMap="cartMap" parameterType="string">
+		SELECT c.id, c.user_id, c.product_id, c.product_price, c.product_cnt, p.itemNm, p.img 
+		FROM cart c
+		INNER JOIN product p
+		ON c.product_id = p.id
+		WHERE c.user_id = #{id};
+	</select>  
+	
+	<!-- 장바구니 등록하기 -->
+	<insert id="insertCart" parameterType="Cart" keyProperty="id" useGeneratedKeys="true" >
+		INSERT INTO cart (user_id, product_id, product_price, product_cnt)
+		VALUES (#{userId}, #{productId}, #{productPrice}, #{productCnt});
+	</insert>
+	
+	<!-- 장바구니 삭제하기 -->
+	<delete id="deleteCart" parameterType="int">
+		DELETE FROM cart
+		WHERE id = #{id}
+	</delete>
+	
+	<!-- 장바구니 수정하기 -->
+	<update id="updateCart" parameterType="Cart">
+		UPDATE cart
+		SET user_id = #{userId}, product_id = #{productId}, product_price = #{productPrice}, product_cnt=#{productCnt}
+		WHERE id = #{id}
+	</update>
+	
+	<!-- 주문에 관련된 정보만 order 테이블에 넣고, 생성된 id를 가져와서 dto에 추가 -->
+	<insert id="insertOrder" parameterType="Order">
+		INSERT INTO `order` (user_id, address) VALUES (#{userId}, #{address})
+		<selectKey resultType="int" keyProperty="orderId" order="AFTER">
+        	SELECT LAST_INSERT_ID()
+    	</selectKey>       
+	</insert>
+	<insert id="insertOrderProduct" parameterType="Product">
+		INSERT INTO `order_product` (order_id, product_id, product_count, price) 
+		VALUES (#{orderId}, #{id}, #{purchaseCnt}, #{totalPrice})
+	</insert>
+</mapper>

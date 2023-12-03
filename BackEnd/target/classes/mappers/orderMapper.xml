@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssafy.product.model.dao.OrderDao">
+<resultMap type="Order" id="orderMap">
+		<result column="id" property="id"/>
+		<result column="order_id" property="orderId"/>
+		<result column="user_id" property="userId"/>
+		<result column="address" property="address"/>
+		<result column="orderTime" property="orderDate"/>
+		<result column="product_count" property="productCnt"/>
+		<result column="itemNm" property="itemNm"/>
+		<result column="price" property="price"/>
+		<result column="img" property="img"/>
+		<result column="reviewCheck" property="reviewCheck"/>
+	</resultMap>
+	<!-- 주문 가져오기 -->
+	<select id="selectOne" resultMap="orderMap" parameterType="string">
+		SELECT p.id, o.order_id, o.user_id, o.orderTime , o.address, op.product_count, p.price, p.itemNm, p.img, op.reviewCheck 
+		FROM `order` o
+		INNER JOIN order_product op
+		ON o.order_id = op.order_id
+		INNER JOIN product p
+		ON op.product_id = p.id
+		WHERE o.user_id = #{id}
+		ORDER BY o.order_id
+	</select>  
+	
+	<!-- 주문 삭제하기 -->
+	<delete id="deleteOrder" parameterType="string">
+		DELETE FROM `order`
+		WHERE  user_id = #{id} 
+	</delete>
+	
+	<!-- 결제하기 장바구니 삭제 -->
+	<delete id="deleteOrder1" parameterType="string">
+		DELETE FROM cart
+		WHERE  user_id = #{id} 
+	</delete>
+	
+	<!-- 주문 취소시 업데이트 -->
+	<!-- order_product에서 단일 삭제 -->
+	<update id="updateOrder" parameterType="Order">
+		DELETE FROM order_product
+		WHERE order_id = #{orderId} AND product_id=#{id};
+	</update>
+	<!-- 단일 취소시 productCnt 수량이 올라가고 purchaseCnt(판매량)이 감소한다. -->
+	<update id="updateOrder1" parameterType="product">
+		UPDATE product
+      	SET stockNumber = stockNumber + #{productCnt}, purchaseCnt = purchaseCnt - #{productCnt}
+      	WHERE id=#{id};
+	</update>
+	<!-- 단일 취소시 order_product에 내용이 없을 때 order자체를 삭제 -->
+	<update id="updateOrder2" parameterType="Order">
+		DELETE FROM `order`
+    	WHERE order_id = #{orderId}
+      	AND NOT EXISTS (SELECT 1 FROM order_product WHERE order_id = #{orderId});
+	</update>
+	
+</mapper>
